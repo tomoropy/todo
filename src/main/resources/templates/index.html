@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODO アプリ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .todo-card {
+            transition: transform 0.2s;
+        }
+        .todo-card:hover {
+            transform: translateY(-2px);
+        }
+        .completed {
+            opacity: 0.7;
+            text-decoration: line-through;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-tasks me-2"></i>TODO アプリ
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <i class="fas fa-user me-1"></i>
+                    <span th:text="${username}">ユーザー</span>さん
+                </span>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-sign-out-alt me-1"></i>ログアウト
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- アラートメッセージ -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- 統計情報 -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">
+                            <i class="fas fa-clock me-2"></i>
+                            <span th:text="${pendingCount}">0</span>
+                        </h3>
+                        <p class="card-text">未完了のTODO</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h3 class="card-title">
+                            <i class="fas fa-check me-2"></i>
+                            <span th:text="${completedCount}">0</span>
+                        </h3>
+                        <p class="card-text">完了したTODO</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TODO作成フォーム -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>新しいTODOを追加
+                </h5>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/todos}" method="post">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">タイトル</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">説明</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>追加
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TODOリスト -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>TODOリスト
+                </h5>
+            </div>
+            <div class="card-body">
+                <div th:if="${#lists.isEmpty(todos)}" class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p>TODOがありません。上のフォームから新しいTODOを追加してください。</p>
+                </div>
+                
+                <div th:each="todo : ${todos}" class="card todo-card mb-3" th:classappend="${todo.completed} ? 'border-success' : 'border-warning'">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h6 class="card-title mb-1" th:classappend="${todo.completed} ? 'completed' : ''">
+                                    <i th:class="${todo.completed} ? 'fas fa-check-circle text-success' : 'far fa-circle text-warning'" class="me-2"></i>
+                                    <span th:text="${todo.title}">タイトル</span>
+                                </h6>
+                                <p class="card-text text-muted mb-2" th:classappend="${todo.completed} ? 'completed' : ''" th:text="${todo.description}">説明</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    作成日: <span th:text="${#temporals.format(todo.createdAt, 'yyyy/MM/dd HH:mm')}">2023/01/01 12:00</span>
+                                </small>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="btn-group" role="group">
+                                    <!-- 完了/未完了切り替え -->
+                                    <form th:action="@{/todos/{id}/toggle(id=${todo.id})}" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-sm" th:classappend="${todo.completed} ? 'btn-warning' : 'btn-success'">
+                                            <i th:class="${todo.completed} ? 'fas fa-undo' : 'fas fa-check'" class="me-1"></i>
+                                            <span th:text="${todo.completed} ? '未完了' : '完了'">完了</span>
+                                        </button>
+                                    </form>
+                                    
+                                    <!-- 編集ボタン -->
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" th:data-bs-target="'#editModal' + ${todo.id}">
+                                        <i class="fas fa-edit me-1"></i>編集
+                                    </button>
+                                    
+                                    <!-- 削除ボタン -->
+                                    <form th:action="@{/todos/{id}/delete(id=${todo.id})}" method="post" class="d-inline" onsubmit="return confirm('本当に削除しますか？')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash me-1"></i>削除
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編集モーダル -->
+    <div th:each="todo : ${todos}" class="modal fade" th:id="'editModal' + ${todo.id}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">TODOを編集</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/todos/{id}/update(id=${todo.id})}" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">タイトル</label>
+                            <input type="text" class="form-control" name="title" th:value="${todo.title}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">説明</label>
+                            <textarea class="form-control" name="description" rows="3" th:text="${todo.description}"></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="completed" th:checked="${todo.completed}">
+                            <label class="form-check-label">完了済み</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="submit" class="btn btn-primary">更新</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
