@@ -44,6 +44,11 @@ CREATE DATABASE todoapp;
 
 または、提供されている `database-setup.sql` を実行：
 
+## Dockerが使える環境であれば、コンテナでDBを作成できます
+```bash
+docker compose up -d
+```
+
 ```bash
 psql -U postgres -f database-setup.sql
 ```
